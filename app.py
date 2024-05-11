@@ -38,7 +38,7 @@ MINIMUM_SUPPORTED_AZURE_OPENAI_PREVIEW_API_VERSION = "2024-02-15-preview"
 load_dotenv()
 
 # UI configuration (optional)
-UI_TITLE = os.environ.get("UI_TITLE") or "Contoso"
+UI_TITLE = os.environ.get("UI_TITLE") or "AI Chatbot"
 UI_LOGO = os.environ.get("UI_LOGO")
 UI_CHAT_LOGO = os.environ.get("UI_CHAT_LOGO")
 UI_CHAT_TITLE = os.environ.get("UI_CHAT_TITLE") or "Start chatting"
@@ -751,7 +751,7 @@ def prepare_model_args(request_body, request_headers):
     model_args = {
         "messages": messages,
         "temperature": float(AZURE_OPENAI_TEMPERATURE),
-        "max_tokens": int(AZURE_OPENAI_MAX_TOKENS),
+        "max_tokens": 4000,
         "top_p": float(AZURE_OPENAI_TOP_P),
         "stop": (
             parse_multi_columns(AZURE_OPENAI_STOP_SEQUENCE)
