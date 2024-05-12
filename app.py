@@ -13,6 +13,7 @@ from quart import (
     request,
     send_from_directory,
     render_template,
+    abort
 )
 
 from openai import AsyncAzureOpenAI
@@ -480,6 +481,7 @@ def get_configured_data_source():
                 ),
             },
         }
+    
     elif DATASOURCE_TYPE == "AzureCosmosDB":
         query_type = "vector"
 
@@ -724,6 +726,7 @@ def get_configured_data_source():
     return data_source
 
 
+
 def prepare_model_args(request_body, request_headers):
     request_messages = request_body.get("messages", [])
     messages = []
@@ -767,6 +770,7 @@ def prepare_model_args(request_body, request_headers):
         model_args["extra_body"] = {"data_sources": [get_configured_data_source()]}
 
     model_args_clean = copy.deepcopy(model_args)
+    
     if model_args_clean.get("extra_body"):
         secret_params = [
             "key",
@@ -840,22 +844,28 @@ async def promptflow_request(request):
 
 async def send_chat_request(request_body, request_headers):
     filtered_messages = []
+    response = None
+    apim_request_id = None
     messages = request_body.get("messages", [])
     for message in messages:
-        if message.get("role") != 'tool':
-            filtered_messages.append(message)
-            
-    request_body['messages'] = filtered_messages
-    model_args = prepare_model_args(request_body, request_headers)
 
+        
+        if message.get("role") != 'tool' and message:
+            print(message)
+            filtered_messages.append(message)
+
+
+    request_body['messages'] = filtered_messages
+    print(request_body)
+    model_args = prepare_model_args(request_body, request_headers)
+    
     try:
         azure_openai_client = init_openai_client()
         raw_response = await azure_openai_client.chat.completions.with_raw_response.create(**model_args)
         response = raw_response.parse()
         apim_request_id = raw_response.headers.get("apim-request-id") 
     except Exception as e:
-        logging.exception("Exception in send_chat_request")
-        raise e
+        raise abort(e.status_code, f"An error occurred while making chat request")
 
     return response, apim_request_id
 
@@ -897,11 +907,14 @@ async def conversation_internal(request_body, request_headers):
             return jsonify(result)
 
     except Exception as ex:
-        logging.exception(ex)
-        if hasattr(ex, "status_code"):
+        #logging.exception(ex)
+        '''if hasattr(ex, "status_code"):
             return jsonify({"error": str(ex)}), ex.status_code
         else:
-            return jsonify({"error": str(ex)}), 500
+            return jsonify({"error": str(ex)}), 500'''
+        pass
+
+
 
 
 @bp.route("/conversation", methods=["POST"])
